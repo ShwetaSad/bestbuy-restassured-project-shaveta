@@ -12,6 +12,7 @@ import java.awt.*;
 import java.util.HashMap;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.BDDAssertions.then;
 
 public class StoresCrudTest extends TestBase {
 
@@ -23,7 +24,7 @@ public class StoresCrudTest extends TestBase {
     static String city = "Reading";
     static String state = "BerkShire";
     static String zip = "GB";
-    static int storeid;
+    static int storeId = 0;
 
     @Test
     public void test001() {
@@ -36,34 +37,34 @@ public class StoresCrudTest extends TestBase {
         storePojo.setCity(city);
         storePojo.setZip(zip);
 
-        Response response = given().log().all()
+        ValidatableResponse response = given().log().ifValidationFails()
                 .header("Content-Type", "application/json")
                 .when()
                 .body(storePojo)
-                .post();
-        response.then().log().ifValidationFails().statusCode(201);
+                .post()
+                .then()
+                .log().ifValidationFails().statusCode(201);
+
+        storeId = response.extract().path("id");
+        System.out.println("store id is : " + storeId);
     }
 
     @Test
     public void test002() {
-        String s1 = "findAll{it.name == '";
-        String s2 = "'}.get(0)";
-
-        ValidatableResponse response = given().log().all()
-                .header("Content-Type", "application/json")
+        ValidatableResponse response = given().log().ifValidationFails()
+                .pathParam("id", storeId)
                 .when()
-                .get()
-                .then().log().all().statusCode(200);
-        String jsonPath = "findAll{it.name == '" + name + "'}.get(0)";
-        HashMap<String, Object> storeMap = response.extract().path(jsonPath);
-        if (storeMap != null) {
-            storeid = (int) storeMap.get("id");
-            System.out.println("Store Id: " + storeid);
-        }
+                .get(EndPoints.GET_SINGLE_STORE_BY_ID)
+                .then().log().ifValidationFails().statusCode(200);
+
+        storeId = response.extract().path("id");
+        System.out.println("store id is : " + storeId);
+
+
     }
 
     @Test
-    public void test003(){
+    public void test003() {
 
         String firstName = StoresCrudTest.name + "_Updated";
 
@@ -72,33 +73,37 @@ public class StoresCrudTest extends TestBase {
         storePojo.setType(type);
         storePojo.setAddress(address);
         storePojo.setAddress2(address2);
+        storePojo.setState(state);
+        storePojo.setCity(city);
+        storePojo.setZip(zip);
 
-        Response response = given().log().all()
+        ValidatableResponse response = given().log().ifValidationFails()
                 .header("Content-Type", "application/json")
-                .pathParam("id", storeid)
+                .pathParam("id", storeId)
                 .when()
                 .body(storePojo)
-                .put(EndPoints.UPDATE_STORE_BY_ID);
-        response.then().log().ifValidationFails().statusCode(200);
+                .put(EndPoints.UPDATE_STORE_BY_ID)
+                .then().log().ifValidationFails().statusCode(200);
 
     }
 
 
     @Test
     public void test004() {
-        given().log().all()
-                .pathParam("id", storeid)
+        given().log().ifValidationFails()
+                .pathParam("id", storeId)
                 .when()
                 .delete(EndPoints.DELETE_STORE_BY_ID)
-                .then().log().all()
-                .statusCode(204);
+                .then()
+                .statusCode(200);
 
-        given().log().all()
-                .pathParam("id", storeid)
+        given()
+                .log()
+                .ifValidationFails()
+                .pathParam("id", storeId)
                 .when()
-                .get(EndPoints.UPDATE_STORE_BY_ID)
-                .then().log().all().statusCode(404);
-    }
+                .get(EndPoints.GET_SINGLE_STORE_BY_ID)
+                .then().log().ifValidationFails().statusCode(404);
     }
 
-
+}

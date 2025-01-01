@@ -32,7 +32,7 @@ public class ProductCrudTest  {
     static String manufacturer = "Sanay";
     static String model = "Wr345";
     static String upc = "344854";
-    static int id;
+    static int ProductId = 0;
 
 
     @Test
@@ -48,70 +48,72 @@ public class ProductCrudTest  {
         productPojo.setModel(model);
 
 
-        Response response = given().log().all()
+        ValidatableResponse response = given().log().ifValidationFails()
                 .header("Content-Type", "application/json")
                 .when()
                 .body(productPojo)
-                .post();
-        response.then().log().ifValidationFails().statusCode(201);
+                .post()
+        .then().log().ifValidationFails().statusCode(201);
+        ProductId = response.extract().path("id");
+        System.out.println("product id is : " + ProductId);
 
 
     }
     @Test
     public void test002() {
-        String s1 = "findAll{it.name == '";
-        String s2 = "'}.get(0)";
-
-        ValidatableResponse response = given().log().all()
-                .header("Content-Type", "application/json")
+        ValidatableResponse response = given().log().ifValidationFails()
+                .pathParam("id", ProductId)
                 .when()
-                .get()
-                .then().log().all().statusCode(200);
-        String jsonPath = "findAll{it.name == '" + name + "'}.get(0)";
-        HashMap<String, Object> storeMap = response.extract().path(jsonPath);
-        if (storeMap != null) {
-            id = (int) storeMap.get("id");
-            System.out.println("Store Id: " + id);
-        }
+                .get(EndPoints.GET_SINGLE_PRODUCTS_BY_ID)
+                .then().log().ifValidationFails().statusCode(200);
+
+        ProductId = response.extract().path("id");
+        System.out.println("product id is : " + ProductId);
+
     }
 
     @Test
     public void test003(){
 
-        String firstName = ProductCrudTest.name + "_Updated";
-
         ProductPojo productPojo = new ProductPojo();
-        productPojo.setName(name);
+        productPojo.setName(name + "UpdatedName" + TestUtils.getRandomValue());
         productPojo.setType(type);
         productPojo.setPrice(price);
+        productPojo.setUpc(upc);
+        productPojo.setManufacturer(manufacturer);
         productPojo.setDescription(description);
+        productPojo.setModel(model);
 
-        Response response = given().log().all()
+
+        ValidatableResponse response = given().log().ifValidationFails()
                 .header("Content-Type", "application/json")
-                .pathParam("id", id)
+                .pathParam("id", ProductId)
                 .when()
                 .body(productPojo)
-                .put(EndPoints.UPDATE_PRODUCTS_BY_ID);
-        response.then().log().ifValidationFails().statusCode(200);
-
+                .put(EndPoints.UPDATE_PRODUCTS_BY_ID)
+                .then().log().ifValidationFails().statusCode(200);
     }
 
 
     @Test
     public void test004() {
-        given().log().all()
-                .pathParam("id", id)
+        given().log().ifValidationFails()
+                .pathParam("id", ProductId)
                 .when()
-                .delete(EndPoints.DELETE_STORE_BY_ID)
-                .then().log().all()
-                .statusCode(204);
+                .delete(EndPoints.DELETE_PRODUCTS_BY_ID)
+                .then()
+                .statusCode(200);
 
-        given().log().all()
-                .pathParam("id", id)
+        given()
+                .log()
+                .ifValidationFails()
+                .pathParam("id", ProductId)
                 .when()
-                .get(EndPoints.UPDATE_PRODUCTS_BY_ID)
-                .then().log().all().statusCode(404);
+                .get(EndPoints.GET_SINGLE_PRODUCTS_BY_ID)
+                .then().log().ifValidationFails().statusCode(404);
     }
+
+
 }
 
 
